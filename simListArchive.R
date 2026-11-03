@@ -15,7 +15,7 @@ defineModule(sim, list(
   documentation = list("README.md"),
   reqdPkgs = list("data.table", "qs2", "sf", "terra",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9084)",
-                  "PredictiveEcology/SpaDES.project@development"),
+                  "PredictiveEcology/SpaDES.project@development (>= 1.2.0.9029)"),
   parameters = bindrows(
     defineParameter("archiveFile", "character", "nrvRuns_phase5.rds", NA, NA,
                     "The ledger's file name. One file per campaign of runs."),
