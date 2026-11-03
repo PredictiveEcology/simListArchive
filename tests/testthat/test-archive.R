@@ -59,6 +59,20 @@ test_that("two ELFs join with unique pixelGroups and each keeps its own cohorts"
   expect_false(999L %in% out$cohortData$B)      # a group on no pixel in the area is dropped
 })
 
+test_that("group 0 (no cohorts) is not moved onto another run's group", {
+  d <- withr::local_tempdir()
+  saved <- list(toyFiles(file.path(d, "a"), 0, 1e5, 2720), toyFiles(file.path(d, "b"), 1e5, 2e5, 2720))
+  r <- terra::rast(saved[[2]][1]) - 1L             # run B's groups are 0 and 1
+  f <- file.path(d, "b", "b0.tif")
+  terra::writeRaster(r, f, datatype = "INT4S")
+  file.rename(f, saved[[2]][1])
+  files <- rbind(.archiveFileTable(saved[[1]], c("cohortData", "pixelGroupMap"), 1L),
+                 .archiveFileTable(saved[[2]], c("cohortData", "pixelGroupMap"), 2L))
+  out <- archiveLoadYear(files, rbind(toyRow("A", 1, 0, 1e5), toyRow("B", 1, 1e5, 2e5)), toyPoly(0, 2e5), 2720)
+  expect_setequal(terra::values(out$pixelGroupMap, mat = FALSE), c(0, 1, 2, 3))
+  expect_identical(sum(terra::values(out$pixelGroupMap, mat = FALSE) == 2), 50L)   # only run A's own group 2
+})
+
 test_that("objects are cropped to the study area and cohorts follow", {
   d <- withr::local_tempdir()
   fa <- toyFiles(d, 0, 1e5, 2720)

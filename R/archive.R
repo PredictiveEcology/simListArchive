@@ -95,8 +95,9 @@ archiveLoadYear <- function(files, runs, area, atYear) {
     isRast <- vapply(objs, inherits, logical(1), "SpatRaster")
     objs[isRast] <- lapply(objs[isRast], .archiveClip, polygon = polygons[i], area = area)
     if (!is.null(objs$pixelGroupMap)) {
-      groups <- stats::na.omit(unique(terra::values(objs$pixelGroupMap, mat = FALSE)))
-      objs$pixelGroupMap <- objs$pixelGroupMap + offset
+      groups <- setdiff(stats::na.omit(unique(terra::values(objs$pixelGroupMap, mat = FALSE))), 0)
+      ## group 0 (a pixel with no cohorts) stays 0 in every run
+      objs$pixelGroupMap <- terra::ifel(objs$pixelGroupMap > 0, objs$pixelGroupMap + offset, 0L)
       if (!is.null(objs$cohortData)) {
         cd <- as.data.frame(objs$cohortData)
         cd <- cd[cd$pixelGroup %in% groups, ]
