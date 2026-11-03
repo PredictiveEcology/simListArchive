@@ -40,17 +40,20 @@ archiveSelectRuns <- function(ledger, area, scenario = list()) {
                          year = as.numeric(sub(pat, "\\2", basename(files))), file = files)
 }
 
-## Download the files needed, for `start` (or the latest save before it) to `end`, and nothing else.
+## Download the files needed, for `start` (or each object's latest save before it) to `end`, and nothing else.
+## Objects are saved at different years, so the years are chosen per object, from the run's index.
 archiveFetch <- function(runs, objects, start, end, destDir) {
-  need <- lapply(runs$saveTimes, function(st) {
-    st <- sort(unique(st))
-    before <- st[st <= start]
-    if (!length(before))
-      stop("The archive has no save at or before year ", start, "; its first is ", min(st), call. = FALSE)
-    st[st >= max(before) & st <= end]
-  })
   out <- lapply(seq_len(NROW(runs)), function(i) {
-    pattern <- paste0("^(", paste(objects, collapse = "|"), ")_year0*(", paste(need[[i]], collapse = "|"), ")\\.")
+    saved <- .archiveFileTable(SpaDES.project::reIndex(runs$driveId[i], destDir)$name, objects, run = i)
+    wanted <- unlist(lapply(objects, function(obj) {
+      st <- sort(unique(saved$year[saved$object == obj]))
+      if (!length(st)) return(NULL)
+      before <- st[st <= start]
+      if (!length(before))
+        stop("The archive has no ", obj, " saved at or before year ", start, "; its first is ", min(st), call. = FALSE)
+      paste0(obj, "_year0*", st[st >= max(before) & st <= end])
+    }))
+    pattern <- paste0("^(", paste(wanted, collapse = "|"), ")\\.")
     remap <- c(old = runs$outputPath[i], new = file.path(destDir, runs$runName[i]))
     sim <- SpaDES.project::reGetUntarLoad(runs$driveId[i], destDir = destDir, pathRemap = remap, remote = TRUE,
                                           outputsPattern = pattern)[[1]]

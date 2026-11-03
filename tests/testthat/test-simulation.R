@@ -35,6 +35,7 @@ test_that("a module runs on archived outputs from a later start, with no simulat
                                  saveTime = rep(c(2620, 2720, 2820), each = 2), saved = TRUE, arguments = NA)
   asked <- list()
   testthat::local_mocked_bindings(
+    reIndex = function(...) data.frame(name = sub("^/", "", saved)),
     reGetUntarLoad = function(gFiles, ..., outputsPattern) {
       asked <<- list(id = gFiles, pattern = outputsPattern)
       list(archived)

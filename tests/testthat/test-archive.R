@@ -105,5 +105,28 @@ test_that("archiveTimes keeps saved years every run has, within times", {
 })
 
 test_that("a start before the first save stops", {
-  expect_error(archiveFetch(toyRow("A", 1, 0, 1e5, saveTimes = 2720), "cohortData", 2500, 3000, tempdir()), "no save at or before")
+  testthat::local_mocked_bindings(reIndex = function(...) data.frame(name = "o/cohortData_year2720.qs2"),
+                                  .package = "SpaDES.project")
+  expect_error(archiveFetch(toyRow("A", 1, 0, 1e5), "cohortData", 2500, 3000, tempdir()),
+               "no cohortData saved at or before")
+})
+
+test_that("each object starts from its own latest save, as objects are saved at different years", {
+  ## as in the NRV runs: vegTypeMap more often than cohortData
+  saved <- c(paste0("o/cohortData_year", c(2620, 2720, 2820), ".qs2"),
+             paste0("o/vegTypeMap_year", c(2700, 2740, 2760, 2780), ".tif"))
+  asked <- NULL
+  testthat::local_mocked_bindings(
+    reIndex = function(...) data.frame(name = saved),
+    reGetUntarLoad = function(gFiles, ..., outputsPattern) {
+      asked <<- outputsPattern
+      sim <- SpaDES.core::simInit()
+      sim@outputs <- data.frame(file = file.path("/x", grep(outputsPattern, basename(saved), value = TRUE)),
+                                saved = TRUE)
+      list(sim)
+    }, .package = "SpaDES.project")
+  files <- archiveFetch(toyRow("A", 1, 0, 1e5), c("cohortData", "vegTypeMap"), 2750, 2800, tempdir())
+  got <- basename(files$file)
+  expect_setequal(got, c("cohortData_year2720.qs2", "vegTypeMap_year2740.tif", "vegTypeMap_year2760.tif",
+                         "vegTypeMap_year2780.tif"))
 })
