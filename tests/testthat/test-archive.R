@@ -105,9 +105,11 @@ test_that("archiveTimes keeps saved years every run has, within times", {
 })
 
 test_that("a start before the first save stops", {
-  testthat::local_mocked_bindings(reIndex = function(...) data.frame(name = "o/cohortData_year2720.qs2"),
-                                  .package = "SpaDES.project")
-  expect_error(archiveFetch(toyRow("A", 1, 0, 1e5), "cohortData", 2500, 3000, tempdir()),
+  testthat::local_mocked_bindings(reIndex = function(gFile, destDir) {
+    stopifnot(dir.exists(destDir))  # googledrive cannot write into a missing folder
+    data.frame(name = "o/cohortData_year2720.qs2")
+  }, .package = "SpaDES.project")
+  expect_error(archiveFetch(toyRow("A", 1, 0, 1e5), "cohortData", 2500, 3000, file.path(withr::local_tempdir(), "new")),
                "no cohortData saved at or before")
 })
 

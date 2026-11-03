@@ -43,6 +43,7 @@ archiveSelectRuns <- function(ledger, area, scenario = list()) {
 ## Download the files needed, for `start` (or each object's latest save before it) to `end`, and nothing else.
 ## Objects are saved at different years, so the years are chosen per object, from the run's index.
 archiveFetch <- function(runs, objects, start, end, destDir) {
+  dir.create(destDir, recursive = TRUE, showWarnings = FALSE)
   out <- lapply(seq_len(NROW(runs)), function(i) {
     saved <- .archiveFileTable(SpaDES.project::reIndex(runs$driveId[i], destDir)$name, objects, run = i)
     wanted <- unlist(lapply(objects, function(obj) {
