@@ -123,6 +123,7 @@ test_that("each object starts from its own latest save, as objects are saved at 
     reGetUntarLoad = function(gFiles, ..., outputsPattern) {
       asked <<- outputsPattern
       sim <- SpaDES.core::simInit()
+      sim$climateYearRecord <- data.table::data.table(simYear = 2720, climateYear = 2020)
       sim@outputs <- data.frame(file = file.path("/x", grep(outputsPattern, basename(saved), value = TRUE)),
                                 saved = TRUE)
       list(sim)
@@ -131,4 +132,38 @@ test_that("each object starts from its own latest save, as objects are saved at 
   got <- basename(files$file)
   expect_setequal(got, c("cohortData_year2720.qs2", "vegTypeMap_year2740.tif", "vegTypeMap_year2760.tif",
                          "vegTypeMap_year2780.tif"))
+})
+
+## Two runs whose saved simLists hold a climateYearRecord, mocked as the lazy sim hands it out
+mockRecords <- function(records) {
+  testthat::local_mocked_bindings(
+    reIndex = function(...) data.frame(name = "o/cohortData_year2720.qs2"),
+    reGetUntarLoad = function(gFiles, ...) {
+      sim <- SpaDES.core::simInit()
+      sim$climateYearRecord <- records[[sub("^id", "", gFiles)]]
+      sim@outputs <- data.frame(file = "/x/cohortData_year2720.qs2", saved = TRUE)
+      list(sim)
+    }, .package = "SpaDES.project", .env = parent.frame())
+}
+recFor <- function(climateYear) data.table::data.table(simYear = c(2720, 2721, 2722, 2900), climateYear = climateYear)
+
+test_that("the climate year of each simulation year is supplied for each run, within start to end", {
+  mockRecords(list(A_NRV_370_1 = recFor(c(2001, 2002, 2003, 2004)), B_NRV_370_1 = recFor(c(2001, 2002, 2003, 2004))))
+  expect_no_warning(files <- archiveFetch(rbind(toyRow("A", 1, 0, 1e5), toyRow("B", 1, 1e5, 2e5)),
+                                          "cohortData", 2720, 2800, tempdir()))
+  rec <- attr(files, "climateYearRecord")
+  expect_named(rec, c("runName", "ELF", "simYear", "climateYear"))
+  expect_identical(NROW(rec), 6L)                                   # 3 years in 2720..2800, 2 runs
+  expect_identical(rec$climateYear[rec$runName == "A_NRV_370_1"], c(2001, 2002, 2003))
+})
+
+test_that("runs that used different climate years for a simulation year give one warning naming them", {
+  mockRecords(list(A_NRV_370_1 = recFor(c(2001, 2002, 2003, 2004)), B_NRV_370_1 = recFor(c(2001, 2012, 2013, 2004))))
+  expect_warning(archiveFetch(rbind(toyRow("A", 1, 0, 1e5), toyRow("B", 1, 1e5, 2e5)), "cohortData", 2720, 2800, tempdir()),
+                 "A_NRV_370_1, B_NRV_370_1 used different climate years in 2 of .*2721, 2722\\)")
+})
+
+test_that("a difference outside start to end is not a warning", {
+  mockRecords(list(A_NRV_370_1 = recFor(c(2001, 2002, 2003, 2004)), B_NRV_370_1 = recFor(c(2001, 2002, 2003, 9999))))
+  expect_no_warning(archiveFetch(rbind(toyRow("A", 1, 0, 1e5), toyRow("B", 1, 1e5, 2e5)), "cohortData", 2720, 2800, tempdir()))
 })

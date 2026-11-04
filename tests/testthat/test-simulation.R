@@ -33,6 +33,7 @@ test_that("a module runs on archived outputs from a later start, with no simulat
   ## as registerOutputs() leaves them: `outputs<-` knows no save method for .qs2
   archived@outputs <- data.frame(file = saved, fun = NA_character_, package = NA_character_, objectName = NA_character_,
                                  saveTime = rep(c(2620, 2720, 2820), each = 2), saved = TRUE, arguments = NA)
+  archived$climateYearRecord <- data.table::data.table(simYear = 2620:2900, climateYear = 2020L)
   asked <- list()
   testthat::local_mocked_bindings(
     reIndex = function(...) data.frame(name = sub("^/", "", saved)),
@@ -54,5 +55,7 @@ test_that("a module runs on archived outputs from a later start, with no simulat
   expect_true(grepl("2720", asked$pattern) && grepl("2820", asked$pattern) && !grepl("2620", asked$pattern))
   expect_identical(as.numeric(out$seen$year), c(2720, 2820))
   expect_identical(out$seen$B, c(2720L, 2820L) * 2L)
+  expect_identical(out$climateYearRecord$simYear, 2720:2820)
+  expect_identical(out$climateYearRecord$runName, rep("A_NRV_370_1", 101L))
   expect_false(any(c("Biomass_core", "canClimateData") %in% unlist(SpaDES.core::modules(out))))
 })

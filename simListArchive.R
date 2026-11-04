@@ -17,8 +17,8 @@ defineModule(sim, list(
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9084)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.2.0.9029)"),
   parameters = bindrows(
-    defineParameter("archiveFile", "character", "nrvRuns_phase5.rds", NA, NA,
-                    "The ledger's file name. One file per campaign of runs."),
+    defineParameter("archiveFile", "character", "nrvRuns.rds", NA, NA,
+                    "The ledger of the current campaign of runs: its file name in `archiveRemote`."),
     defineParameter("archiveRemote", "character",
                     "https://drive.google.com/drive/folders/188ERmd1k6s6YMv3wHtnHQHD7pgLseBjf", NA, NA,
                     "The Google Drive or shared-disk folder that holds the ledger."),
@@ -34,6 +34,8 @@ defineModule(sim, list(
   ),
   outputObjects = bindrows(
     createsOutput("archiveTimes", "numeric", "The saved years within `times`; other modules can schedule on these."),
+    createsOutput("climateYearRecord", "data.table",
+                  "Which climate year each simulation year used, in each run: runName, ELF, simYear, climateYear."),
     createsOutput("cohortData", "data.table", "From the latest saved year; `pixelGroup` ids are unique across runs."),
     createsOutput("pixelGroupMap", "SpatRaster", "From the latest saved year, cropped to `studyArea`."),
     createsOutput("rstTimeSinceFire", "SpatRaster", "If in `objects`."),
@@ -51,6 +53,7 @@ doEvent.simListArchive <- function(sim, eventTime, eventType) {
       mod$runs <- archiveSelectRuns(ledger, sim$studyArea, P(sim)$scenario)
       mod$files <- archiveFetch(mod$runs, P(sim)$objects, start(sim), end(sim),
                                 destDir = file.path(inputPath(sim), "simListArchive"))
+      sim$climateYearRecord <- attr(mod$files, "climateYearRecord")
       sim$archiveTimes <- archiveTimes(mod$files, start(sim), end(sim))
       sim <- archiveAssign(sim, archiveLoadYear(mod$files, mod$runs, sim$studyArea, start(sim)))
       for (y in sim$archiveTimes[sim$archiveTimes > start(sim)])

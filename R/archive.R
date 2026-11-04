@@ -58,13 +58,40 @@ archiveFetch <- function(runs, objects, start, end, destDir) {
     remap <- c(old = runs$outputPath[i], new = file.path(destDir, runs$runName[i]))
     sim <- SpaDES.project::reGetUntarLoad(runs$driveId[i], destDir = destDir, pathRemap = remap, remote = TRUE,
                                           outputsPattern = pattern)[[1]]
-    .archiveFileTable(SpaDES.core::outputs(sim)$file, objects, run = i)
+    list(files = .archiveFileTable(SpaDES.core::outputs(sim)$file, objects, run = i),
+         climate = .archiveClimateRecord(sim, runs[i, ], start, end))
   })
-  files <- data.table::rbindlist(out)
+  files <- data.table::rbindlist(lapply(out, `[[`, "files"))
+  climate <- data.table::rbindlist(lapply(out, `[[`, "climate"))
+  .archiveClimateWarn(climate)
   missed <- setdiff(objects, files$object)
   if (length(missed))
     stop("The archived runs have no saved files for: ", paste(missed, collapse = ", "), call. = FALSE)
+  attr(files, "climateYearRecord") <- climate
   files
+}
+
+## The run's record of which climate year each simulation year used, for `start` to `end`. The loaded
+## simList is lazy, so touching `climateYearRecord` range-fetches that one small member, not the objects.
+.archiveClimateRecord <- function(sim, run, start, end) {
+  rec <- sim$climateYearRecord
+  if (is.null(rec))
+    stop("The saved simList of ", run$runName, " has no `climateYearRecord`", call. = FALSE)
+  rec <- as.data.frame(rec)[, c("simYear", "climateYear")]
+  rec <- rec[rec$simYear >= start & rec$simYear <= end, ]
+  id <- as.data.frame(sf::st_drop_geometry(run))[, intersect(c("runName", "ELF"), names(run)), drop = FALSE]
+  data.table::as.data.table(cbind(id[rep(1L, NROW(rec)), , drop = FALSE], rec))
+}
+
+## One warning, naming the runs, if the runs used different climate years for the same simulation year
+.archiveClimateWarn <- function(climate) {
+  nYears <- tapply(climate$climateYear, climate$simYear, function(x) length(unique(x)))
+  differ <- as.numeric(names(nYears)[nYears > 1L])
+  if (length(differ))
+    warning("simListArchive: the runs ", paste(sort(unique(climate$runName[climate$simYear %in% differ])), collapse = ", "),
+            " used different climate years in ", length(differ), " of ", length(nYears), " simulation years (",
+            if (length(differ) > 5) paste0(paste(differ[1:5], collapse = ", "), ", ...") else paste(differ, collapse = ", "),
+            "): the areas did not have the same climate.", call. = FALSE)
 }
 
 ## The saved years, within start to end, that every run has
