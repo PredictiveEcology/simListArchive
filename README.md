@@ -18,6 +18,8 @@ out <- SpaDES.project::setupProject(
 
 At each saved year your module finds `sim$cohortData` and `sim$pixelGroupMap`, cropped to the study area. `sim$archiveTimes` holds those years, so schedule on them. On any other year, the objects stay at the latest saved year. A study area spanning several polygons gets each one's values in its own pixels, with `pixelGroup` ids made unique. Other saved objects can be added with the `objects` parameter.
 
+`sim$climateYearRecord` says which climate year each simulation year used, for each run: columns `runName`, `ELF`, `simYear`, `climateYear`, for `start` to `end`. If the runs under your study area used different climate years for the same simulation year, you get one warning naming them.
+
 Your module should list what it needs with `expectsInput()`, which also makes it run after this module. Downloading needs a Google login with access to the folder.
 
 ## Example: a study area across two ELFs
@@ -43,3 +45,7 @@ table(sim$cohortData$pixelGroup %in% terra::values(sim$pixelGroupMap))  # all TR
 ```
 
 If you set `options(spades.useRequire = FALSE)`, also give `packagePath` in `paths`: a library that already has SpaDES.core, terra and sf. Otherwise `setupProject` uses a new, empty project library. Warnings that the module code of `Biomass_core` and others cannot be found are expected: they come from the archived simList, which is only read, never run.
+
+## Campaigns
+
+The folder's `nrvRuns.rds` always lists the current runs. When a new campaign of runs is complete it replaces that file, and your local copy refreshes by itself: the ledger is fetched again whenever its checksum on Google Drive differs from your copy. A new campaign is uploaded to its own subfolder with its own ledger file, so old and new runs exist side by side until the switch. To try the new runs early, set `archiveRemote` to the campaign's subfolder and `archiveFile` to its ledger's name. At the switch, the maintainer copies the new ledger over `nrvRuns.rds` and trashes the old campaign's files.
