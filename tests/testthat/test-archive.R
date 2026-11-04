@@ -160,7 +160,7 @@ test_that("the climate year of each simulation year is supplied for each run, wi
 test_that("runs that used different climate years for a simulation year give one warning naming them", {
   mockRecords(list(A_NRV_370_1 = recFor(c(2001, 2002, 2003, 2004)), B_NRV_370_1 = recFor(c(2001, 2012, 2013, 2004))))
   expect_warning(archiveFetch(rbind(toyRow("A", 1, 0, 1e5), toyRow("B", 1, 1e5, 2e5)), "cohortData", 2720, 2800, tempdir()),
-                 "A_NRV_370_1, B_NRV_370_1 used different climate years.*2721, 2722")
+                 "A_NRV_370_1, B_NRV_370_1 used different climate years in 2 of .*2721, 2722\\)")
 })
 
 test_that("a difference outside start to end is not a warning", {

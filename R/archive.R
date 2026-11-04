@@ -89,7 +89,8 @@ archiveFetch <- function(runs, objects, start, end, destDir) {
   differ <- as.numeric(names(nYears)[nYears > 1L])
   if (length(differ))
     warning("simListArchive: the runs ", paste(sort(unique(climate$runName[climate$simYear %in% differ])), collapse = ", "),
-            " used different climate years for the same simulation year (", paste(differ, collapse = ", "),
+            " used different climate years in ", length(differ), " of ", length(nYears), " simulation years (",
+            if (length(differ) > 5) paste0(paste(differ[1:5], collapse = ", "), ", ...") else paste(differ, collapse = ", "),
             "): the areas did not have the same climate.", call. = FALSE)
 }
 
