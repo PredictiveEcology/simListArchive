@@ -1,5 +1,17 @@
 # simListArchive
 
+**Retired (2026-11-06).** Use `SpaDES.project::setupProject(alreadyRun = )` instead (SpaDES.project >= 1.2.0.9032, SpaDES.core >= 3.2.1.9058). Give the same `modules` the archived run used plus your own; only your modules are fetched and run, and they get the run's saved objects. For now `alreadyRun` replays one run (one ELF); this module still installs if you need a study area that spans several ELFs.
+
+```r
+out <- SpaDES.project::setupProject(
+  times = list(start = 2720, end = 2820),
+  modules = c(<the run's modules>, "yourAccount/yourModule@development"),
+  alreadyRun = list(ledger = "nrvRuns.rds",
+                    remote = "https://drive.google.com/drive/folders/188ERmd1k6s6YMv3wHtnHQHD7pgLseBjf",
+                    scenario = list(ELF = "6.6.2", GCM = "NRV", SSP = 370, rep = 1))
+)
+```
+
 Run your module on the saved outputs of a long simulation, without running that simulation and without knowing which run to download. You give a study area; the module finds the runs in a ledger and downloads only the files needed.
 
 List this module instead of `LandR_ClimateSensitiveSimulator`:
